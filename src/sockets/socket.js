@@ -35,14 +35,13 @@ const requestBooking = async (req, res) => {
 
 
 const showBooking = (req, res) => {
-  // console.log(req.body)
 
   const showBooking = {
     pickup: req.body.pickup,
     drop: req.body.drop,
   }
   pusher.trigger('show-booking', 'show_booking', showBooking)
-  res.json({ created: true })
+  res.json({ showbooking: true })
 }
 
 
@@ -80,7 +79,6 @@ const pilotCancelledBooking = (req, res) => {
 
 
 module.exports = {
-  // sendBooking,
   requestBooking,
   showBooking,
   showPilot,

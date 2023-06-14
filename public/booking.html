@@ -89,7 +89,7 @@
           />
           <button type="submit" onclick="requestBooking(event)">Booking</button>
         </form>
-        <div id="showbookings_list" class="bookings_list">
+        <div id="showbookings_list" class="bookings-list">
           <script id="showbooking_template" type="text/x-template">
             <div class="showbookings_info">
                 <div class="row">
@@ -131,6 +131,7 @@
       let id = localStorage.getItem("id");
 
       function requestBooking(event){
+        event.preventDefault()
 
         try{
           const newBooking = {
@@ -150,28 +151,29 @@
             const showBooking = {
                 pickup: document.getElementById("new_pickup_location").value,
                 drop: document.getElementById("new_drop_location").value,
-              };
-              const xh = new XMLHttpRequest();
-              xh.open("POST", serverUrl + "showbooking", true); //send to the server url
-              xh.setRequestHeader(
+            };
+
+            const xhr = new XMLHttpRequest();
+              xhr.open("POST", serverUrl + "showbooking", true); //send to the server url
+              xhr.setRequestHeader(
                 "Content-Type",
                 "application/json;charset=UTF-8"
               );
-              xh.onreadystatechange = function () {
+              xhr.onreadystatechange = function () {
                 //when ever the status changes this function is execute
-                if (xh.readyState != 4) return;
+                if (xhr.readyState != 4) return;
 
-                if (xh.status === 200) {
+                if (xhr.status === 200) {
                   // On Success of creating a new booking
-                  console.log("Success: " + xh.responseText);
+                  console.log("Success: " + xhr.responseText);
                   // bookingForm.reset();
-                } else if (xh.status === 405) {
+                } else if (xhr.status === 405) {
                   console.log("Error: Method Not Allowed");
                 } else {
-                  console.log("Error: " + xh.status);
+                  console.log("Error: " + xhr.status);
                 }
               };
-              xh.send(JSON.stringify(showBooking));
+              xhr.send(JSON.stringify(showBooking));
 
               var bookingTimeout = setTimeout(function () {
                 if (!bookingAccepted) {
@@ -198,7 +200,7 @@
       }
 
       function newShowBooking(data) {
-        console.log(data)
+        console.log("data",data)
           let newShowBookingHtml = showbooking_template.innerHTML.replace(
             "{{pickup}}",
             data.pickup
@@ -252,7 +254,7 @@
             })
 
            const cancelMessage = {
-            "message":"Cancelled Booking"
+            message:"Cancelled Booking"
            }
           
            
@@ -292,9 +294,9 @@
 
         let bookingForm = document.getElementById("booking-form")
           
-        let channelshow = pusher.subscribe("show-booking") //channel name should be anything
+        let channel = pusher.subscribe("show-booking") //channel name should be anything
+          channel.bind("show_booking", newShowBooking);
           showBookingList = document.getElementById("showbookings_list")
-          channelshow.bind("show_booking", newShowBooking);
 
         let channelshowPilot = pusher.subscribe("show-pilot");
         channelshowPilot.bind("new_pilot", newPilotReceived);
