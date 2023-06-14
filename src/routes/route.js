@@ -29,8 +29,8 @@ router.put('/api/booking/accept', pilotBookingController.acceptBooking)
 router.put('/api/booking/update-accept', pilotBookingController.updateAcceptedBooking)
 
 //socket event routes
-router.post('/booking', event.sendBooking)
-// router.post('/requested-booking/:id', event.requestBooking)
+// router.post('/booking', event.sendBooking)
+router.post('/requested-booking/:id', event.requestBooking)
 // router.post('/accepted-booking', event.acceptedBooking)
 router.post('/showbooking', event.showBooking)
 router.post('/pilot', event.showPilot)

@@ -206,6 +206,28 @@
         }
   }
 
+  // async function acceptBooking(event) {
+  //     let pilotId = localStorage.getItem('pilotId');
+  //     const storedObjectString = localStorage.getItem('data');
+  //     const storedObject = JSON.parse(storedObjectString);
+      
+
+  //     const acceptedPilot = {
+  //       pilotId: pilotId,
+  //       pickup: storedObject.pickup,
+  //       drop: storedObject.drop
+  //     };
+
+        
+  //     fetch(`http://localhost:5000/accepted-booking`, {
+  //       method: "POST",
+  //       headers: {
+  //       "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ acceptedPilot }),
+  //       });
+  // }
+
         
   async function cancelBooking() {
       const ev = event || window.event; 
@@ -295,13 +317,13 @@
         });
 
         // channel name should be same which is subscribe in booking
-        channel = pusher.subscribe("send-booking-request");
+        let pilotId = parseInt(localStorage.getItem("pilotId"))
+        let channel = pusher.subscribe(`pilot-${pilotId}`); 
         bookingList = document.getElementById("bookings_list");
-
-        channel.bind("new_booking", newBookingReceived);
+        channel.bind("requested_booking", newBookingReceived);
 
         channel = pusher.subscribe('show-pilot');
-        const acceptButton = document.getElementById('accept-button');
+        let acceptButton = document.getElementById('accept-button');
 
         (channel = pusher.subscribe('cancel-byPilot'));
         (cancelButton = document.getElementById('cancel-button'))

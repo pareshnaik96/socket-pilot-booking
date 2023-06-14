@@ -2,7 +2,7 @@ const Booking = require('../models/booking');
 
 
 const createBooking = async (req, res) => {
-  const userId = req.params.userId;
+  let userId = req.params.userId;
 
   try {
     const bookings = await Booking.findAll({
@@ -19,7 +19,7 @@ const createBooking = async (req, res) => {
       const status = 'ongoing';
 
       const newBooking = await Booking.create({
-        pickup_location: data.pickup_location,
+        pickup_location: data.pickup,
         user_id: userId,
         status: status
       });
@@ -35,7 +35,7 @@ const createBooking = async (req, res) => {
         const status = 'ongoing';
 
         const newBooking = await Booking.create({
-          pickup_location: data.pickup_location,
+          pickup_location: data.pickup,
           user_id: userId,
           status: status
         });
