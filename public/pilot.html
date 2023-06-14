@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f2f2f2;
+    }
+  
+    .heading {
+      text-align: center;
+      color: #333;
+    }
+  
+    .bookings-list {
+      margin-top: 20px;
+    }
+  
+    .booking_info {
+      background-color: #f5f5f5;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+  
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  
+    .pickup,
+    .drop,
+    .name,
+    .phoneNumber {
+      flex-basis: 20%;
+    }
+  
+    .actions {
+      flex-basis: 30%;
+    }
+  
+    .actions button {
+      padding: 5px 10px;
+      margin-left: 5px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+  
+    .actions button:hover {
+      background-color: #555;
+    }
+  </style>
+  
+  <body>
+    <div>
+    <section>
+      <h2 class="heading">Pilot DashBoard</h2>
+      <div id="bookings_list" class="bookings-list">
+        <script id="booking_template" type="text/x-template">
+          <div class="booking_info">
+              <div class="row">
+                  <div class="pickup">{{pickup}}</div>
+                  <div class="drop">{{drop}}</div>
+                  <div class="name">{{name}}</div>
+                  <div class="phoneNumber">{{phoneNumber}}</div>
+                  <div class="actions">
+                    <button id="accept-button" onclick="acceptBooking(event)">Accept</button>
+                    <button id="cancel-button" onclick="cancelBooking()">Cancel</button>
+                    <button id="complete-button" onclick="completeBooking()" style="display: none;">Complete</button>
+                  </div>
+              </div>
+          </div>
+        </script>
+      </div>
+    </section>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/pusher/8.0.2/pusher.min.js"
+    ></script>
+    <!-- <script type="text/javascript" src="./pilot.js"></script> -->
+    <script>
+    let serverUrl = "/";
+
+    function hideUserInfo() {
+      const acceptedStatus = localStorage.getItem("acceptedstatus");
+      if (acceptedStatus === "false") {
+        const bookingElement = document.querySelector(".booking_info");
+        if (bookingElement) {
+          bookingElement.style.display = "none";
+        }
+      }
+    }
+
+
+    function newBookingReceived(data) {
+        localStorage.setItem("userId",data.userId)
+        if (data.name && data.phoneNumber) {
+              let newBookingHtml = booking_template.innerHTML.replace(
+                "{{pickup}}",
+                data.pickup
+              );
+              newBookingHtml = newBookingHtml.replace("{{drop}}", data.drop);
+              newBookingHtml = newBookingHtml.replace("{{name}}", data.name);
+              newBookingHtml = newBookingHtml.replace(
+                "{{phoneNumber}}",
+                data.phoneNumber
+              );
+              let newBookingNode = document.createElement("div");
+              newBookingNode.classList.add("booking_info");
+              newBookingNode.innerHTML = newBookingHtml;
+             
+              bookingList.appendChild(newBookingNode);
+        } else {
+            // Display null user data
+            alert("User data not available or empty");
+        }
+    }
+
+
+    async function acceptBooking(event) {
+        event.target.value = true;
+        event.target.style.display = "none"; // Hide the button
+          // Perform the necessary actions for accepting the booking
+          // For example, you can make an API request to update the booking status
+        let userId = localStorage.getItem("userId")
+         
+          //for checking in booking table whether status is booked or not
+        const booking = await fetch(`http://localhost:5000/api/booking/get-id/${userId}`,{
+              method:"GET",
+              headers:{
+                "Content-Type":"application/json",
+              },
+        })
+
+        const bookingData = await booking.json()
+        //not present then execute this code
+        if(bookingData.status){
+         
+          let pilotId = localStorage.getItem("pilotId")
+          let bookingId = bookingData.bookingId
+          localStorage.setItem("bookingId", bookingId);
+  
+          fetch("http://localhost:5000/api/booking/accept",{
+              method:"PUT",
+              headers:{
+                "Content-Type":"application/json",
+              },
+              body:JSON.stringify({pilotId,bookingId})
+            })
+
+            const response = await fetch(`http://localhost:5000/api/pilot/${pilotId}`)
+            const data = await response.json()
+
+            let name = data.result.name
+            let phoneNumber = data.result.phone_number
+
+            const newPilot = {
+                name:name,
+                phoneNumber:phoneNumber
+            }
+
+            // ajax
+            const xhr = new XMLHttpRequest()
+            xhr.open('POST', serverUrl + "pilot", true)  //send to the server url
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8")
+            xhr.onreadystatechange = function () {  //when ever the status changes this function is execute
+                if (xhr.readyState != 4) return;
+
+                if (xhr.status === 200) {
+                    // On Success of creating a new booking
+                    console.log("Success: " + xhr.responseText);
+                } else if (xhr.status === 405) {
+                    console.log("Error: Method Not Allowed");
+                } else {
+                    console.log("Error: " + xhr.status);
+                }
+            }
+            xhr.send(JSON.stringify(newPilot));
+
+            localStorage.setItem("acceptedstatus","true");
+            hideUserInfo()
+
+            
+            const completeButton = document.getElementById("complete-button");
+            completeButton.style.display = "inline-block";
+
+            const cancelButton = document.getElementById("cancel-button");
+            cancelButton.style.display = "none";
+
+        }else{
+          alert(bookingData.message)
+
+          const cancelButton = document.getElementById("cancel-button");
+          cancelButton.style.display = "none";
+
+        }
+  }
+
+        
+  async function cancelBooking() {
+      const ev = event || window.event; 
+      const target = ev.target || ev.srcElement; 
+      ev.target.value = true;
+      ev.target.style.display = "none";
+      
+      const userId = localStorage.getItem("userId");
+      
+      const booking = await fetch(`http://localhost:5000/api/booking/get-id/${userId}`)
+      const bookingData = await booking.json()
+      let bookingId = bookingData.bookingId
+      
+      if(bookingData.status){
+        fetch(`http://localhost:5000/api/booking/update/${bookingId}`,{
+              method:"PUT",
+              headers:{
+                "Content-Type":"application/json",
+              },
+          })
+
+          const cancelMessage = {
+            "message":"Cancelled Booking"
+          }
+          
+           
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", serverUrl + "cancelbooking", true); //send to the server url
+          xhr.setRequestHeader(
+            "Content-Type",
+            "application/json;charset=UTF-8"
+          );
+          xhr.onreadystatechange = function () {
+            //when ever the status changes this function is execute
+            if (xhr.readyState != 4) return;
+
+            if (xhr.status === 200) {
+              // On Success of creating a new booking
+              console.log("Success: " + xhr.responseText);
+            } else if (xhr.status === 405) {
+              console.log("Error: Method Not Allowed");
+            } else {
+              console.log("Error: " + xhr.status);
+            }
+          };
+          xhr.send(JSON.stringify(cancelMessage));
+
+          const Accept = document.getElementById("accept-button");
+          Accept.style.display = "none";
+
+      }else{
+        alert(bookingData.message)
+      }
+    }
+
+
+    function cancelledBooking(data){
+          alert(data.message)
+        }
+
+        async function completeBooking(){
+          const ev = event || window.event; 
+          const target = ev.target || ev.srcElement; 
+          ev.target.value = true;
+          ev.target.style.display = "none";
+          
+          let bookingId = localStorage.getItem("bookingId");
+          let pilotId = parseInt(localStorage.getItem("pilotId"))
+
+          fetch(`http://localhost:5000/api/booking/update-accept`,{
+              method:"PUT",
+              headers:{
+                "Content-Type":"application/json",
+              },
+              body:JSON.stringify({pilotId,bookingId})
+          })
+    }
+     
+      
+
+    (function () {
+        PushManager.logToConsole = true;
+
+        pusher = new Pusher("61af8db6181008703758", {
+          cluster: "ap2",
+          encrypted: true,
+        });
+
+        // channel name should be same which is subscribe in booking
+        channel = pusher.subscribe("send-booking-request");
+        bookingList = document.getElementById("bookings_list");
+
+        channel.bind("new_booking", newBookingReceived);
+
+        channel = pusher.subscribe('show-pilot');
+        const acceptButton = document.getElementById('accept-button');
+
+        (channel = pusher.subscribe('cancel-byPilot'));
+        (cancelButton = document.getElementById('cancel-button'))
+        
+        channel = pusher.subscribe('cancel-booking');
+        channel.bind("cancel_booking", cancelledBooking);
+
+    })();
+
+        
+    </script>
+  </body>
+</html>
+
+

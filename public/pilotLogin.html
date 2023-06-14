@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login Page</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f1f1f1;
+      }
+
+      .container {
+        width: 300px;
+        padding: 16px;
+        background-color: #fff;
+        margin: 0 auto;
+        margin-top: 100px;
+        border: 1px solid #ccc;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      input[type="number"],
+      input[type="password"] {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        display: inline-block;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 14px 20px;
+        margin: 8px 0;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      button:hover {
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <section>
+      <div class="container">
+        <h2>Login</h2>
+        <form id="login-form">
+          <label for="number">Phone Number</label>
+          <input
+            type="number"
+            id="user_number"
+            placeholder="Enter your number"
+            name="number"
+            required
+          />
+          <br />
+
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="user_password"
+            placeholder="Enter your password"
+            name="password"
+            required
+          />
+
+          <button type="button" onClick="login()">Login</button>
+        </form>
+      </div>
+    </section>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/pusher/8.0.2/pusher.min.js"
+    ></script>
+    <script>
+      async function login() {
+        const phoneNumber = document.getElementById("user_number").value;
+        const password = document.getElementById("user_password").value;
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/api/pilot/login",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ phoneNumber, password }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to login. Please try again.");
+          }
+
+          let data = await response.json();
+
+          if (data.status) {
+            // Login successful, redirect to the booking page
+            alert(data.message);
+            localStorage.setItem("pilotId", data.pilotId);
+            localStorage.setItem("acceptedstatus", "false");
+            window.location.href = "pilot.html";
+          } else {
+            // Login failed, display error message
+            throw new Error(data.message);
+          }
+        } catch (error) {
+          // Handle any errors that occurred during the fetch request
+          console.error(error);
+          alert("An error occurred. Please try again later.");
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .flash-booking {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .heading {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .text {
+        font-weight: bold;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 20px;
+      }
+      .text {
+        margin-bottom: 10px;
+        padding: 10px;
+      }
+
+      button {
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      .bookings-list {
+        margin-top: 20px;
+      }
+
+      .booking-info {
+        margin-bottom: 10px;
+      }
+   /*css for div*/
+      .pilot-list {
+        margin-top: 20px;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .name,
+      .phoneNumber {
+        color: #333;
+      }
+      
+    </style>
+  </head>
+  <body>
+    <section>
+      <h2 class="heading">User DashBoard</h2>
+      <div class="flash-booking">
+        <div class="heading">
+          <div class="text"></div>
+        </div>
+        <form id="booking-form">
+          <input
+            type="text"
+            class="text"
+            id="new_pickup_location"
+            required
+            placeholder="Enter pickup location"
+          />
+          <input
+            type="text"
+            class="text"
+            id="new_drop_location"
+            required
+            placeholder="Enter drop location"
+          />
+          <button type="submit" onclick="createBooking(event)">Booking</button>
+        </form>
+        <div id="showbookings_list" class="bookings_list">
+          <script id="showbooking_template" type="text/x-template">
+            <div class="showbookings_info">
+                <div class="row">
+                    <div class="pickup">{{pickup}}</div>
+                    <div class="drop">{{drop}}</div>
+                    <div class="actions">
+                      <button id="cancel-button" onclick="cancelBooking()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+          </script>
+        </div>
+        <div id="pilot_list" class="pilot-list">
+          <script id="pilot_template" type="text/x-template">
+            <div class="pilot_info">
+                <div class="row">
+                    <div class="name">{{name}}</div>
+                    <div class="phoneNumber">{{phoneNumber}}</div>
+                    <div class="actions">
+                      <button id="booking-cancel-button" onclick="cancelBooking()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+          </script>
+        </div>
+    </section>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/pusher/8.0.2/pusher.min.js"
+    ></script>
+    <!-- <script type="text/javascript" src="./booking.js"></script> -->
+    <script>
+      //function expression which is immediately 
+      let serverUrl = "/" // configuring the server url
+
+      let bookingAccepted = false;
+      let bookingTimeout
+
+      let storedUserId = localStorage.getItem("id");
+
+      function createBooking(event) {
+        const pickup_location = document.getElementById("new_pickup_location").value;
+        let userId = storedUserId;
+
+          try {
+            let response = fetch(`http://localhost:5000/api/booking/${userId}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ pickup_location }),
+            });
+           addNewBooking(event);
+
+          var bookingTimeout = setTimeout(function () {
+            if (!bookingAccepted) {
+              notifyUserNoPilot();
+            }
+          }, 15000);
+      
+          } catch (error) {
+            console.error("Error creating booking:", error);
+          }
+      }
+
+      function newShowBooking(data) {
+          let newShowBookingHtml = showbooking_template.innerHTML.replace(
+            "{{pickup}}",
+            data.pickup
+          );
+          newShowBookingHtml = newShowBookingHtml.replace("{{drop}}", data.drop);
+          let newShowBookingNode = document.createElement("div");
+          newShowBookingNode.classList.add("showbookings_info");
+          newShowBookingNode.innerHTML = newShowBookingHtml;
+
+          showBookingList.appendChild(newShowBookingNode);
+      }
+
+
+      function newPilotReceived(data) {
+          bookingAccepted = true;
+          clearTimeout(bookingTimeout); 
+          let newPilotHtml = pilot_template.innerHTML.replace("{{name}}",data.name);
+          newPilotHtml = newPilotHtml.replace("{{phoneNumber}}",data.phoneNumber);
+          let newPilotNode = document.createElement("div");
+          newPilotNode.classList.add("pilot_info");
+          newPilotNode.innerHTML = newPilotHtml;
+
+        const previousCancelButton = document.getElementById("cancel-button");
+        if (previousCancelButton) {
+          previousCancelButton.style.display = "none";
+        }
+        pilotList.appendChild(newPilotNode);
+      }
+          
+         
+      async function addNewBooking(e) {
+          e.preventDefault(); //for prevent auto submission of form
+
+          let userId = localStorage.getItem("id");
+          const res = await fetch(`http://localhost:5000/api/user/${userId}`);
+          let data = await res.json();
+         
+          if (data.result && typeof data.result === "object"){
+            let Name = data.result.name;
+            let PhoneNumber = data.result.phone_number;
+            let userId = data.result.id
+
+            const newBooking = {
+              userId : userId,
+              pickup: document.getElementById("new_pickup_location").value,
+              drop: document.getElementById("new_drop_location").value,
+              name: Name,
+              phoneNumber:PhoneNumber
+            };
+
+
+          // ajax
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", serverUrl + "booking", true); //send to the server url
+          xhr.setRequestHeader(
+            "Content-Type",
+            "application/json;charset=UTF-8"
+          );
+          xhr.onreadystatechange = function () {
+            //when ever the status changes this function is execute
+            if (xhr.readyState != 4) return;
+
+            if (xhr.status === 200) {
+              // On Success of creating a new booking
+              console.log("Success: " + xhr.responseText);
+              // bookingForm.reset();
+            } else if (xhr.status === 405) {
+              console.log("Error: Method Not Allowed");
+            } else {
+              console.log("Error: " + xhr.status);
+            }
+          };
+          xhr.send(JSON.stringify(newBooking));
+          
+          
+          const showBooking = {
+                pickup: document.getElementById("new_pickup_location").value,
+                drop: document.getElementById("new_drop_location").value,
+              };
+              const xh = new XMLHttpRequest();
+              xh.open("POST", serverUrl + "showbooking", true); //send to the server url
+              xh.setRequestHeader(
+                "Content-Type",
+                "application/json;charset=UTF-8"
+              );
+              xh.onreadystatechange = function () {
+                //when ever the status changes this function is execute
+                if (xh.readyState != 4) return;
+
+                if (xh.status === 200) {
+                  // On Success of creating a new booking
+                  console.log("Success: " + xh.responseText);
+                  // bookingForm.reset();
+                } else if (xh.status === 405) {
+                  console.log("Error: Method Not Allowed");
+                } else {
+                  console.log("Error: " + xh.status);
+                }
+              };
+              xh.send(JSON.stringify(showBooking));
+          }else{
+            alert("User data not found or empty")
+          }
+          
+      }
+        
+
+      async function cancelBooking(){
+        const ev = event || window.event; // Access the event object using 'event' or 'window.event'
+        const target = ev.target || ev.srcElement; // Access the target element
+        ev.target.value = true;
+        ev.target.style.display = "none"; 
+          let userId = localStorage.getItem("id");
+          const data = await fetch(`http://localhost:5000/api/booking/get/${userId}`,{
+              method:"GET",
+              headers:{
+                "Content-Type":"application/json",
+              },
+            })
+          const bookingData = await data.json();
+          let bookingId = bookingData.bookingId
+  
+          fetch(`http://localhost:5000/api/booking/update/${bookingId}`,{
+              method:"PUT",
+              headers:{
+                "Content-Type":"application/json",
+              },
+            })
+
+           const cancelMessage = {
+            "message":"Cancelled Booking"
+           }
+          
+           
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", serverUrl + "cancel", true); //send to the server url
+          xhr.setRequestHeader(
+            "Content-Type",
+            "application/json;charset=UTF-8"
+          );
+          xhr.onreadystatechange = function () {
+            //when ever the status changes this function is execute
+            if (xhr.readyState != 4) return;
+
+            if (xhr.status === 200) {
+              // On Success of creating a new booking
+              console.log("Success: " + xhr.responseText);
+            } else if (xhr.status === 405) {
+              console.log("Error: Method Not Allowed");
+            } else {
+              console.log("Error: " + xhr.status);
+            }
+          };
+          xhr.send(JSON.stringify(cancelMessage));
+
+      }
+
+     
+      (function () {
+        PushManager.logToConsole = true;
+
+ 
+          let pilots = [];
+        const pusher = new Pusher("61af8db6181008703758", {
+          cluster: "ap2",
+          encrypted: true,
+        });
+
+        let bookingForm = document.getElementById("booking-form")
+          
+        let channelshow = pusher.subscribe("show-booking") //channel name should be anything
+          showBookingList = document.getElementById("showbookings_list")
+          channelshow.bind("show_booking", newShowBooking);
+
+        let channelshowPilot = pusher.subscribe("show-pilot");
+        channelshowPilot.bind("new_pilot", newPilotReceived);
+        pilotList = document.getElementById("pilot_list");
+        
+        let channelcancelled = pusher.subscribe('cancel-booking');
+        cancelButton = document.getElementById('cancel-button')
+
+        let channelpilotCancelled = pusher.subscribe('cancel-byPilot');
+        channelpilotCancelled.bind("cancel_byPilot", cancelledBooking);    
+
+      })();
+
+      function cancelledBooking(data){
+          // console.log("cancel booking inside pilot")
+        alert(data.message)
+      }
+
+      function notifyUserNoPilot() {
+        alert("No pilot available at the moment. Please try again later.");
+      }
+
+    </script>
+  </body>
+</html>
